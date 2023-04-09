@@ -1,25 +1,22 @@
 import "dotenv/config"
 import express, { Request, Response, NextFunction } from 'express';
-import NoteModel from './models/note';
+import notesRoutes from './routes/notes';
+import morgan from "morgan"
+
 
 const app = express();
+
+app.use(morgan('dev'));
+
+app.use(express.json());
+
+app.use('/api/notes', notesRoutes);
 
 // This is to remove the favicon.ico request from the logs
 app.get("/favicon.ico", (req, res) => {
     res.sendStatus(204);
   });
 
-  ////
-
-app.get('/', async (req, res, next) => {
-  try {
-   // throw Error('Bazinga!')
-    const notes = await NoteModel.find().exec();
-    res.status(200).json(notes)
-  } catch (error) {
-    next(error)
-  }
-})
 
 app.use((req, res, next) => {
   next(Error('Endpoint not found!'))
