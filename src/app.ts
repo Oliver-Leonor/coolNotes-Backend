@@ -1,8 +1,13 @@
-import "dotenv/config"
-import express, { Request, Response, NextFunction } from 'express';
-import notesRoutes from './routes/notes';
-import morgan from "morgan"
+import MongoStore from "connect-mongo";
+import "dotenv/config";
+import express, { NextFunction, Request, Response } from 'express';
+import session from "express-session";
 import createHttpError, { isHttpError } from "http-errors";
+import morgan from "morgan";
+import { requiresAuth } from "./middleware/auth";
+import notesRoutes from './routes/notes';
+import userRoutes from './routes/users';
+import env from './util/validateEnv';
 
 
 const app = express();
@@ -11,12 +16,26 @@ app.use(morgan('dev'));
 
 app.use(express.json());
 
-app.use('/api/notes', notesRoutes);
+app.use(session({
+  secret: env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 60 * 60 * 1000,
+  },
+  rolling: true,
+  store: MongoStore.create({
+    mongoUrl: env.MONGO_CONNECTION_STRING
+  })
+}))
+
+app.use('/api/users', userRoutes);
+app.use('/api/notes', requiresAuth, notesRoutes);
 
 // This is to remove the favicon.ico request from the logs
 app.get("/favicon.ico", (req, res) => {
-    res.sendStatus(204);
-  });
+  res.sendStatus(204);
+});
 
 
 app.use((req, res, next) => {
